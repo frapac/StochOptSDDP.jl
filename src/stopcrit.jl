@@ -177,5 +177,5 @@ mutable struc Shapiro <: AbstractStoppingCriterion
 end
 
 function stop(s::Shapiro, stats::AbstractSDDPStats, totalstats::AbstractSDDPStats)
-    totalstats.niterations > 0 && stats.upper_bounds - stats.upper_bounds_std < s.epsilon
+    totalstats.niterations > 0 && stats.upper_bounds - stats.upper_bounds_std .<= s.epsilon
 end
