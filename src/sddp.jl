@@ -28,14 +28,14 @@ mutable struct NodeData
     noises
 end
 
-mutable struct PathElement
-    id::Int
-    ξ::Vector{Float}
-    sol::Solution
+mutable struct Transition
+    id::Int # node id
+    ξ::Vector{Float} # noise
 end
 
 mutable struct Path
-    path::Vector{PathElement}
+    scenario::Vector{Transition}
+    sol::Vector{Solution}
 end
 
 
@@ -57,10 +57,10 @@ nstages(sp::MultistageStochasticProgram) = length(sp.data)
 struct Solution <: SOI.AbstractSolution
     status::Symbol
     objval::Float64
-    ut::Vector{Float64}
-    λt::Vector{Float64}
-    xf::Vector{Float64}
-    θf::Vector{Float64}
+    ut::Vector{Float64}# control
+    λt::Vector{Float64}# cut slope
+    xf::Vector{Float64}# next optimal state
+    θf::Vector{Float64}# value of θ
 end
 
 struct SDDP <: SOI.AbstractAlgorithm
@@ -78,7 +78,7 @@ function gencuts end
 
 struct SolutionStore end
 
-function forwardpass!(sp::MultistageStochasticProgram, algo::SDDP)
+function forwardpass!(sp::MultistageStochasticProgram, scenario::Scenario, algo::SDDP)
 
     stats = SOI.SDDPStats()
 
