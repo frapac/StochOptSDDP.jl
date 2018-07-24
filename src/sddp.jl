@@ -28,6 +28,16 @@ mutable struct NodeData
     noises
 end
 
+mutable struct PathElement
+    id::Int
+    ξ::Vector{Float}
+    sol::Solution
+end
+
+mutable struct Path
+    path::Vector{PathElement}
+end
+
 
 # cuts utilities
 abstract type AbstractCut end
