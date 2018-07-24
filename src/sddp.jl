@@ -21,22 +21,21 @@ end
 
 
 ################################################################################
-# Transition utilities
+# Probability utilities
 ################################################################################
 # we are able to implement different kind of transitions
-abstract type NodeTransition  <: SOI.AbstractTransitionAttributes end
 
-struct IndependentTransition <: NodeTransition
+struct IndependentProbability <: SOI.Probability
     laws::Scenarios.DiscreteLaw
     # we have an unique child!
     child::Int
 end
 
 # in this case, we just sample a realization of the marginal laws
-sample(trans::IndependentTransition) = (trans.child, rand(trans.laws))
+sample(trans::IndependentProbability) = (trans.child, rand(trans.laws))
 
 
-struct MarkovTransition <: NodeTransition
+struct MarkovProbability <: SOI.Probability
     # transition from outgoing edges
     childproba::Scenarios.DiscreteLaw{Int}
     # independent realization
@@ -44,10 +43,10 @@ struct MarkovTransition <: NodeTransition
 end
 # first attempt to build a constructor for MarkovTransition
 # TODO: decide if it is convenient enough
-MarkovTransition(μ::Scenarios.DiscreteLaw, childs, probaschild::Vector{Float64}) =
+MarkovProbability(μ::Scenarios.DiscreteLaw, childs, probaschild::Vector{Float64}) =
     MarkovTransition(Scenarios.DiscreteLaw(childs, probaschild), μ)
 
-sample(trans::MarkovTransition) = (rand(trans.childproba), rand(trans.laws))
+sample(trans::MarkovProbability) = (rand(trans.childproba), rand(trans.laws))
 
 
 ################################################################################
