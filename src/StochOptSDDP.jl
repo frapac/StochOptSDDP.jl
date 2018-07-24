@@ -5,6 +5,7 @@ module StochOptSDDP
 import JuMP
 import MathOptInterface, StochOptInterface
 using CutPruners, LightGraphs
+import Scenarios
 
 
 const SOI = StochOptInterface

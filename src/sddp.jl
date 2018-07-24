@@ -19,15 +19,45 @@ function optimize(dp::DynamicProgrammingModel)
     JuMP.optimize(dp.pb)
 end
 
+
+################################################################################
+# Transition utilities
+################################################################################
+# we are able to implement different kind of transitions
+abstract type NodeTransition  <: SOI.AbstractTransitionAttributes end
+
+struct IndependentTransition <: NodeTransition
+    laws::Scenarios.DiscreteLaw
+    # we have an unique child!
+    child::Int
+end
+
+# in this case, we just sample a realization of the marginal laws
+sample(trans::IndependentTransition) = (trans.child, rand(trans.laws))
+
+
+struct MarkovTransition <: NodeTransition
+    # transition from outgoing edges
+    childproba::Scenarios.DiscreteLaw{Int}
+    # independent realization
+    laws::Scenarios.DiscreteLaw
+end
+# first attempt to build a constructor for MarkovTransition
+# TODO: decide if it is convenient enough
+MarkovTransition(μ::Scenarios.DiscreteLaw, childs, probaschild::Vector{Float64}) =
+    MarkovTransition(Scenarios.DiscreteLaw(childs, probaschild), μ)
+
+sample(trans::MarkovTransition) = (rand(trans.childproba), rand(trans.laws))
+
+
+################################################################################
 mutable struct NodeData
     timestep::Int
     pb::DynamicProgrammingModel
     cutstore # TODO
     cuts::Vector{AbstractCut}
-    # TODO: where should we put proba vector?
-    noises
+    noises::NodeTransition
 end
-
 
 # cuts utilities
 abstract type AbstractCut end
@@ -41,8 +71,7 @@ struct MultistageStochasticProgram <: SOI.AbstractStochasticProgram
     data::Vector{NodeData}
     num_stages::Int
 end
-# get number of stages inside a MultistageStochasticProgram
-nstages(sp::MultistageStochasticProgram) = length(sp.data)
+
 
 struct Solution <: SOI.AbstractSolution
     status::Symbol
@@ -66,7 +95,13 @@ struct CutGenerator end
 function gencuts end
 
 
+# for simulation
 struct SolutionStore end
+
+# for forward pass
+struct Path
+    store::Vector{Solution}
+end
 
 function forwardpass!(sp::MultistageStochasticProgram, algo::SDDP)
 
