@@ -2,6 +2,10 @@
 # Probability utilities
 ################################################################################
 # we are able to implement different kind of transitions
+struct Transition <:SOI.AbstractTransition
+    ξ::Vector{Float}
+    child::Int
+end
 
 struct IndependentProbability <: SOI.Probability
     laws::Scenarios.DiscreteLaw
