@@ -9,7 +9,7 @@ struct AverageCutGenerator <: AbstractCutGenerator end
 
 # TODO: state `x` is missing
 
-function gencuts(::AverageCutGenerator, sp, node, pos, pool)
+function gencuts(::AverageCutGenerator, sp, node, pos, pool, to::TimerOutputs)
     avgλ = zeros()
     avgβ = 0.
 
@@ -44,7 +44,7 @@ end
 ####################
 struct MultiCutGenerator <: AbstractCutGenerator end
 
-function gencuts(::MultiCutGenerator, sp, node, pos, pool)
+function gencuts(::MultiCutGenerator, sp, node, pos, pool, to::TimerOutputs)
 
     multicuts = Cut[]
 

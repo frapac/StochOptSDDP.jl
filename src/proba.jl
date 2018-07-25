@@ -3,7 +3,7 @@
 ################################################################################
 # we are able to implement different kind of transitions
 
-struct IndependentProbability <: SOI.Probability
+struct IndependentProbability <: SOI.AbstractTransition
     laws::Scenarios.DiscreteLaw
     # we have an unique child!
     child::Int
@@ -13,7 +13,7 @@ end
 sample(trans::IndependentProbability) = (trans.child, rand(trans.laws))
 
 
-struct MarkovProbability <: SOI.Probability
+struct MarkovProbability <: SOI.AbstractTransition
     # transition from outgoing edges
     childproba::Scenarios.DiscreteLaw{Int}
     # independent realization

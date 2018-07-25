@@ -22,9 +22,3 @@ struct Transition{T}
     id::Int # node id
     ξ::Vector{T} # noise
 end
-Scenario = Vector{<:AbstractTransition}
-
-struct Path
-    scenario::Scenario
-    sol::Vector{Solution}
-end

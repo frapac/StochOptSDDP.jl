@@ -1,6 +1,8 @@
-
+################################################################################
 
 struct MultistageStochasticProgram <: SOI.AbstractStochasticProgram
-    data::Vector{NodeData}
+    data::Vector{AbstractNode}
     num_stages::Int
 end
+
+# TODO: populate

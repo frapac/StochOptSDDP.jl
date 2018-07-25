@@ -1,11 +1,6 @@
 ################################################################################
-mutable struct NodeData
-    timestep::Int
-    pb::DynamicProgrammingModel
-    cutstore # TODO
-    cuts::Vector{AbstractCut}
-    noises::NodeTransition
-end
+abstract type AbstractNode end
+
 # TODO
 struct DynamicProgrammingModel
     umin::Vector{Float64}
@@ -21,9 +16,30 @@ end
 DynamicProgrammingModel(umin, umax, xmin, xmax, cost, dynamics) =
     DynamicProgrammingModel(umin, umax, xmin, xmax, cost, dynamics, JuMP.Model())
 
-function optimize(dp::DynamicProgrammingModel)
-    JuMP.optimize(dp.pb)
+optimize(dp::DynamicProgrammingModel) = JuMP.optimize(dp.pb)
+
+mutable struct NodeData <: AbstractNode
+    # time step number
+    timestep::Int
+    # parent nodes
+    parents::Vector{Int}
+    # optimization problem
+    pb::DynamicProgrammingModel
+    # cut pruners
+    cutstore # TODO
+    # cuts previously computed
+    cuts::Vector{AbstractCut}
+    # childs are stored inside noises
+    noises::SOI.AbstractTransition
 end
+
+struct EmptyNode <: AbstractNode
+    timesteps::Int
+    parents::Vector{Int}
+    noises::SOI.AbstractTransition
+end
+
+
 
 
 struct Solution <: SOI.AbstractSolution
