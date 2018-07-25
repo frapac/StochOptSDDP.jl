@@ -278,3 +278,8 @@ function solve_one_stage_dp(dp::DynamicProgrammingModel, xt,ξ)
     end
     return Solution
 end
+
+function solve_one_stage_node(node::NodeData, xt,ξ)
+    solution = solve_one_stage_dp(node.pb, xt, ξ)
+    return solution
+end
