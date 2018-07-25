@@ -19,13 +19,43 @@ function optimize(dp::DynamicProgrammingModel)
     JuMP.optimize(dp.pb)
 end
 
+
+################################################################################
+# Probability utilities
+################################################################################
+# we are able to implement different kind of transitions
+
+struct IndependentProbability <: SOI.Probability
+    laws::Scenarios.DiscreteLaw
+    # we have an unique child!
+    child::Int
+end
+
+# in this case, we just sample a realization of the marginal laws
+sample(trans::IndependentProbability) = (trans.child, rand(trans.laws))
+
+
+struct MarkovProbability <: SOI.Probability
+    # transition from outgoing edges
+    childproba::Scenarios.DiscreteLaw{Int}
+    # independent realization
+    laws::Scenarios.DiscreteLaw
+end
+# first attempt to build a constructor for MarkovTransition
+# TODO: decide if it is convenient enough
+MarkovProbability(μ::Scenarios.DiscreteLaw, childs, probaschild::Vector{Float64}) =
+    MarkovTransition(Scenarios.DiscreteLaw(childs, probaschild), μ)
+
+sample(trans::MarkovProbability) = (rand(trans.childproba), rand(trans.laws))
+
+
+################################################################################
 mutable struct NodeData
     timestep::Int
     pb::DynamicProgrammingModel
     cutstore # TODO
     cuts::Vector{AbstractCut}
-    # TODO: where should we put proba vector?
-    noises
+    noises::NodeTransition
 end
 
 
@@ -56,8 +86,7 @@ struct MultistageStochasticProgram <: SOI.AbstractStochasticProgram
     data::Vector{NodeData}
     num_stages::Int
 end
-# get number of stages inside a MultistageStochasticProgram
-nstages(sp::MultistageStochasticProgram) = length(sp.data)
+
 
 struct Solution <: SOI.AbstractSolution
     status::Symbol
@@ -73,14 +102,79 @@ struct SDDP <: SOI.AbstractAlgorithm
     options::Dict
 end
 
-# TODO!
-struct CutGenerator end
+################################################################################
+# Cuts generator
+################################################################################
+
+abstract type AbstractCutGenerator end
+
+####################
+struct AverageCutGenerator <: AbstractCutGenerator end
+
+# TODO: state `x` is missing
+
+function gencuts(::AverageCutGenerator, sp, node, pos, pool)
+    avgλ = zeros()
+    avgβ = 0.
+
+    ξ = probalaw(node)
+    wghts = Scenarios.weights(ξ)
+
+    # we have to consider every outgoing edges
+    # and every independent noises
+    for tr in SOI.get(sp, SOI.OutTransitions(), node)
+
+        atomλ = zeros()
+        atomβ = 0.
+
+        for iξ in 1:length(ξ)
+
+            # TODO
+            sol = subsolve(node, tr, ξ.support[iξ, :])
+            λ = sol.λt
+            β = sol.objval - dot(λ, x)
+            atomλ += wghts[iξ] * λ
+            atomβ += wghts[iξ] * β
+        end
+
+        proba = SOI.get(sp, SOI.Probability(), tr)
+        avgλ += proba * atomλ
+        avgβ += proba * atomβ
+    end
+
+    return Cut(avgβ, avgλ)
+end
+
+####################
+struct MultiCutGenerator <: AbstractCutGenerator end
+
+function gencuts(::MultiCutGenerator, sp, node, pos, pool)
+
+    multicuts = Cut[]
+
+    ξ = probalaw(node)
+    wghts = Scenarios.weights(ξ)
+
+    # we have to consider every outgoing edges
+    # and every independent noises
+    for tr in SOI.get(sp, SOI.OutTransitions(), node)
+        for iξ in 1:length(ξ)
+
+            # TODO
+            sol = subsolve(node, tr, ξ.support[iξ, :])
+            λ = sol.λt
+            β = sol.objval - dot(λ, x)
+            push!(multicuts, Cut(β, λ))
+        end
+    end
+
+    return multicuts
+end
 
 
-# TODO
-function gencuts end
+################################################################################
 
-
+# for simulation
 struct SolutionStore end
 
 function forward_pass(sp::MultistageStochasticProgram, algo::SDDP)
