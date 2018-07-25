@@ -1,5 +1,3 @@
-
-
 ################################################################################
 
 # for simulation
@@ -18,19 +16,11 @@ function sample(sp::MultistageStochasticProgram)
     nothing
 end
 
-function simulate(sp::MultistageStochasticProgram, scenario::Scenario, algo::SDDP)
+function simulate_scenario(sp::MultistageStochasticProgram,
+     scenario::Vector{<:AbstractTransition}, to::TimerOutput, verbose)
 
-    stats = SOI.SDDPStats()
-
-    # TODO: define
-    stats.solvertime += SOI.@_time mastersol = SOI.get(sp, SOI.Solution(), master)
-    stats.nsolved += 1
-    stats.niterations += 1
-    infeasibility_detected = SOI.getstatus(mastersol) == :Infeasible
-
-    #TODO
-    current_node =
-    current_state =
+    current_node = get(sp, MasterNode())#FIXME called MasterState in SOI
+    current_state = sp.initial_state
 
     num_stages = length(scenario)
 
@@ -38,17 +28,12 @@ function simulate(sp::MultistageStochasticProgram, scenario::Scenario, algo::SDD
         verbose >= 3 && println("Stage $t/$num_stages")
 
         current_noise = scenario[t].ξ
-        sol = subsolve(node, current_state, current_noise)
+        sol = solve_one_stage_dp(node, current_state, current_noise)
         current_state = sol.xf
-        current_node = scenario[t].id #TODO
+        current_node = scenario[t].child #TODO
         push!(path, sol)
     end
 
-    # update stats
-    stats.upperbound = z_UB
-    stats.σ_UB = σ
-    stats.npaths = algo.K
-    stats.lowerbound = SOI.getobjectivevalue(mastersol)
+    # TODO update info
 
-    pathsd, mastersol, stats
 end
