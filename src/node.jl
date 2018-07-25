@@ -1,4 +1,11 @@
-
+################################################################################
+mutable struct NodeData
+    timestep::Int
+    pb::DynamicProgrammingModel
+    cutstore # TODO
+    cuts::Vector{AbstractCut}
+    noises::NodeTransition
+end
 # TODO
 struct DynamicProgrammingModel
     umin::Vector{Float64}
