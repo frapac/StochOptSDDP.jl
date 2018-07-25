@@ -28,21 +28,26 @@ mutable struct NodeData
     noises
 end
 
-mutable struct Transition
-    id::Int # node id
-    ξ::Vector{Float} # noise
-end
 
-mutable struct Path
-    scenario::Vector{AbstractTransition}
+abstract type AbstractTransition end
+
+struct Transition{T}
+    id::Int # node id
+    ξ::Vector{T} # noise
+end
+Scenario = Vector{<:AbstractTransition}
+
+struct Path
+    scenario::Scenario
     sol::Vector{Solution}
 end
+
 
 
 # cuts utilities
 abstract type AbstractCut end
 
-mutable struct Cut <: AbstractCut
+struct Cut <: AbstractCut
     β::Float64
     λ::Vector{Float64}
 end
@@ -80,19 +85,23 @@ struct SolutionStore end
 
 function forward_pass(sp::MultistageStochasticProgram, algo::SDDP)
     #TODO define
-    scenario = sample_scenarios(sp::MultistageStochasticProgram,
-    algo::SDDP,verbose::Int)
+    # sample one noise scenarios
+    scenario = sample(sp)
     #TODO one fwd pass only
-    simulate_scenario(sp,scenario,SDDP)
+    simulate(sp, scenario, algo)
 end
 
-function simulate_scenario(sp::MultistageStochasticProgram, algo::SDDP, scenario::Scenario)
+function sample(sp::MultistageStochasticProgram)
+    # TODO:
+    nothing
+end
+
+function simulate(sp::MultistageStochasticProgram, scenario::Scenario, algo::SDDP)
 
     stats = SOI.SDDPStats()
 
     # TODO: define
-    stats.solvertime += SOI.@_time mastersol = SOI.get(sp, SOI.Solution(),
-    master)
+    stats.solvertime += SOI.@_time mastersol = SOI.get(sp, SOI.Solution(), master)
     stats.nsolved += 1
     stats.niterations += 1
     infeasibility_detected = SOI.getstatus(mastersol) == :Infeasible
@@ -107,10 +116,10 @@ function simulate_scenario(sp::MultistageStochasticProgram, algo::SDDP, scenario
         verbose >= 3 && println("Stage $t/$num_stages")
 
         current_noise = scenario[t].ξ
-        sol = solve(node, current_state, current_noise)
+        sol = subsolve(node, current_state, current_noise)
         current_state = sol.xf
         current_node = scenario[t].id #TODO
-        push!(path,sol)
+        push!(path, sol)
     end
 
     # update stats
@@ -122,43 +131,6 @@ function simulate_scenario(sp::MultistageStochasticProgram, algo::SDDP, scenario
     pathsd, mastersol, stats
 end
 
-""" #TODO rewrite
-Solve the Bellman equation at time t starting at state x under alea xi
-with the current evaluation of Vt+1
-
-# Description
-The function solve
-min_u current_cost(t,x,u,xi) + current_Bellman_Value_{t+1}(dynamic(t,x,u,xi))
-and can return the optimal control and a subgradient of the value of the
-problem with respect to the initial state x
-
-# Arguments
-* `model::SPmodel`:
-    the stochastic problem we want to optimize
-* `param::SDDPparameters`:
-    the parameters of the SDDP algorithm
-* `m::JuMP.Model`:
-    The linear problem to solve, in order to approximate the
-    current value functions
-* `t::int`:
-    time step at which the problem is solved
-* `xt::Array{Float}`:
-    current starting state
-* `xi::Array{float}`:
-    current noise value
-* `relaxation::Bool`: default is false
-    If problem is MILP, specify if it is needed to relax integer constraints.
-* `init::Bool`:
-    If specified, approximate future cost as 0
-
-# Returns
-* `solved::Bool`:
-    True if the solution is feasible, false otherwise
-* `NextStep`:
-    Store solution of the problem
-* `ts::Float64`:
-   Solver's execution time
-"""
 function solve_one_stage_one_alea(model,
                                  param,
                                  m::JuMP.Model,
