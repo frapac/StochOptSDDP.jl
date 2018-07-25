@@ -10,9 +10,9 @@ import Scenarios
 const SOI = StochOptInterface
 const MOI = MathOptInterface
 
-include("sddp.jl")
-include("node.jl")
-include("proba.jl")
-include("problem.jl")
+include("SDDP/sddp.jl")
+include("Model/node.jl")
+include("Model/proba.jl")
+include("Model/problem.jl")
 
 end
